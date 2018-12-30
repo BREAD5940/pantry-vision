@@ -3,7 +3,7 @@ import numpy as np
  
 # read and scale down image
 # wget https://bigsnarf.files.wordpress.com/2017/05/hammer.png
-img = cv2.pyrDown(cv2.imread('200.jpg', cv2.IMREAD_UNCHANGED))
+img = cv2.pyrDown(cv2.imread('356.jpg', cv2.IMREAD_UNCHANGED))
  
 # threshold image
 # ret, threshed_img = cv2.threshold(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
