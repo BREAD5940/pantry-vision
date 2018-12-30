@@ -6,13 +6,21 @@ import numpy as np
 img = cv2.pyrDown(cv2.imread('89.jpg', cv2.IMREAD_UNCHANGED))
  
 # threshold image
-ret, threshed_img = cv2.threshold(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
-                127, 255, cv2.THRESH_BINARY)
+# ret, threshed_img = cv2.threshold(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
+#                 127, 255, cv2.THRESH_BINARY)
+
+# let's try an hsv threshold
+frame_HSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+threshed_img = cv2.inRange(frame_HSV, (80, 10, 120), (125, 90, 225))
+
 # find contours and get the external one
 image, contours, hier = cv2.findContours(threshed_img, cv2.RETR_TREE,
                 cv2.CHAIN_APPROX_SIMPLE)
  
-cv2.imshow("threshed image", img)
+cv2.imshow("literally an image", img)
+cv2.imshow("threshed image", threshed_img)
+
+
 
 # with each contour, draw boundingRect in green
 # a minAreaRect in red and
