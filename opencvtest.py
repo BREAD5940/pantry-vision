@@ -29,7 +29,7 @@ for c in contours:
     # convert all coordinates floating point values to int
     box = np.int0(box)
     # draw a red 'nghien' rectangle
-    cv2.drawContours(img, [box], 0, (0, 0, 255))
+    # cv2.drawContours(img, [box], 0, (0, 0, 255))
  
     # finally, get the min enclosing circle
     (x, y), radius = cv2.minEnclosingCircle(c)
@@ -37,7 +37,7 @@ for c in contours:
     center = (int(x), int(y))
     radius = int(radius)
     # and draw the circle in blue
-    img = cv2.circle(img, center, radius, (255, 0, 0), 2)
+    # img = cv2.circle(img, center, radius, (255, 0, 0), 2)
  
 print(len(contours))
 
