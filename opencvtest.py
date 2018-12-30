@@ -144,6 +144,9 @@ while iteration < 542:
 
         cv2.imshow("contours", imageToMarkup)
 
+        writepath = 'output\\%s_processed.png' % iteration
+        cv2.imwrite(writepath,img)
+
         if testingMode is True:
             cv2.imshow("threshed image plus markup", threshed_img)
 
