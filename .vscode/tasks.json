@@ -10,15 +10,6 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
-        },
-        {
-            "label": "run csv sine boi",
-            "type": "shell",
-            "command": "C:\\Python27\\python.exe .\\csvParser.py",
-            "group": {
-                "kind": "build",
-                "isDefault": true
             },
             "problemMatcher": []
         }
