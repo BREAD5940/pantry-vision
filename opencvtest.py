@@ -27,6 +27,7 @@ cv2.imshow("threshed image", threshed_img)
 # a minEnclosingCircle in blue
 
 imageToMarkup = img
+contoursMatched = 0
 for c in contours:
     # get the bounding rect
     x, y, w, h = cv2.boundingRect(c)
@@ -39,9 +40,13 @@ for c in contours:
     rect_area = w*h
     # Extent is the ratio of contour area to bounding rectangle area.
     extent = float(area)/rect_area
+    # This is the area 
+    area = cv2.contourArea(c)
 
-    print "aspect ratio: %s extent: %s" % (aspect_ratio, extent)
-    if ( aspect_ratio > 1 ) & ( extent < 0.3 ):
+
+    if ( aspect_ratio > 1 ) & ( extent < 0.3 ) & ( area > 25 ):
+        contoursMatched += 1
+        print "aspect ratio: %s extent: %s area: %s" % (aspect_ratio, extent, area)
         cv2.imshow("contours", imageToMarkup)
         cv2.rectangle(imageToMarkup, (x, y), (x+w, y+h), (0, 255, 0), 2)
         # get the min area rect
@@ -59,16 +64,19 @@ for c in contours:
         radius = int(radius)
         # and draw the circle in blue
         # imageToMarkup = cv2.circle(imageToMarkup, center, radius, (255, 0, 0), 2)
+
+
+
+        
     else:
         print "contour does not match!"
 
-print(len(contours))
+print "Total contours: %s Contours matched: %s" % (len(contours), contoursMatched)
 
 
-
-cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
+# cv2.drawContours(imageToMarkup, contours, -1, (255, 255, 0), 1)
  
-cv2.imshow("contours", img)
+cv2.imshow("contours", imageToMarkup)
  
 cv2.waitKey(0)
 
