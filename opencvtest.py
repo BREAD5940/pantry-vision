@@ -32,6 +32,8 @@ def contourTracingShit(aspect_ratio, extent, area, imageToMarkup, c, x, y, w, h)
     # draw a red 'nghien' rectangle
     cv2.drawContours(imageToMarkup, [box], 0, (0, 0, 255))
 
+    print "Top middle of the contour is at %s" % topmiddlepoint
+
 def findTheTopMiddleOfAbox(box):
     boxSorted = box[box[:,1].argsort()]
     point1 = [boxSorted[0][0], boxSorted[0][1]]
@@ -138,7 +140,7 @@ while iteration < 542:
 
         contourTracingShit(aspect_ratio, extent, area, imageToMarkup, matched_contour, matched_contour_stats[3], matched_contour_stats[4], matched_contour_stats[5], matched_contour_stats[6])
 
-        print"%s,%s,%s" % (aspect_ratio, extent, area)
+        # print"%s,%s,%s" % (aspect_ratio, extent, area)
 
         cv2.imshow("contours", imageToMarkup)
 
