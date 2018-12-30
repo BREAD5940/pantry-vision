@@ -67,7 +67,7 @@ cv.createTrackbar(low_V_name, window_detection_name , low_V, max_value, on_low_V
 cv.createTrackbar(high_V_name, window_detection_name , high_V, max_value, on_high_V_thresh_trackbar)
 while True:
     
-    img = cv.pyrDown(cv.imread('356.jpg', cv.IMREAD_UNCHANGED))
+    img = cv.pyrDown(cv.imread('2016-vision-master\\imgproc\\RealFullField\\15.jpg', cv.IMREAD_UNCHANGED))
 
     if img is None:
         break

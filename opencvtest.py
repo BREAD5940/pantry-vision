@@ -13,15 +13,16 @@ def isWhithinRange(value, expected, tolerence):
 # read and scale down image
 # wget https://bigsnarf.files.wordpress.com/2017/05/hammer.png
 
-iteration = 11
+iteration = 300
 
-while iteration < 200:
-    imgpath = '2016-vision-master\\imgproc\\RealFullField\\%s.jpg' % iteration
+while iteration < 310:
+    # imgpath = '2016-vision-master\\imgproc\\RealFullField\\%s.jpg' % iteration
+    imgpath = '2016-vision-master\\imgproc\\RealFullField\\30memed.jpg'
     img = cv2.pyrDown(cv2.imread(imgpath, cv2.IMREAD_UNCHANGED))
 
-    print iteration
+    print "iteration: %s" % iteration
 
-    iteration = iteration + 4
+    iteration = iteration + 3
 
 
     # threshold image
@@ -47,7 +48,9 @@ while iteration < 200:
 
     imageToMarkup = img
     contoursMatched = 0
+    loop = 0
     for c in contours:
+        loop += 1
         # get the bounding rect
         x, y, w, h = cv2.boundingRect(c)
         # draw a green rectangle to visualize the bounding rect
@@ -62,13 +65,33 @@ while iteration < 200:
         # This is the area 
         area = cv2.contourArea(c)
 
-        # print "aspect ratio: %s extent: %s area: %s" % (aspect_ratio, extent, area)
+        print "contour number %s aspect ratio: %s extent: %s area: %s" % (loop, aspect_ratio, extent, area)
+
+        # compute the center of the contour
+        topmost = tuple(c[c[:,:,1].argmin()][0])
+
+        # print topmost
+        string = "%s" % loop    
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        # bottomLeftCornerOfText = (10,500)
+        fontScale              = 0.5
+        fontColor              = (100,100,155)
+        lineType               = 2
+
+        cv2.putText(threshed_img, string, 
+            topmost, 
+            font, 
+            fontScale,
+            fontColor,
+            lineType)      
+            
+        # print"%s,%s,%s" % (aspect_ratio, extent, area)
 
 
         # if ( aspect_ratio > 1 ) & (aspect_ratio < 2) & ( extent < 0.3 ) & ( area > 25 ):
-        if isWhithinRange(aspect_ratio, 1.4, 0.4) & isWhithinRange(extent, 0.2, 0.1) & ( area > 25 ):
+        if isWhithinRange(aspect_ratio, 1.65, 0.75) & isWhithinRange(extent, 0.2, 0.1) & ( area > 200 ):
             contoursMatched += 1
-            # print "Contour matched!!!          ----          aspect ratio: %s extent: %s area: %s" % (aspect_ratio, extent, area)
+            print "Contour matched!!!          ----          aspect ratio: %s extent: %s area: %s" % (aspect_ratio, extent, area)
             
             print"%s,%s,%s" % (aspect_ratio, extent, area)
 
@@ -103,6 +126,8 @@ while iteration < 200:
     
     cv2.imshow("contours", imageToMarkup)
     
+    cv2.imshow("threshed image plus markup", threshed_img)
+
     cv2.waitKey(0)
 
     cv2.destroyAllWindows()
