@@ -25,28 +25,43 @@ cv2.imshow("threshed image", threshed_img)
 # with each contour, draw boundingRect in green
 # a minAreaRect in red and
 # a minEnclosingCircle in blue
+
+imageToMarkup = img
 for c in contours:
     # get the bounding rect
     x, y, w, h = cv2.boundingRect(c)
     # draw a green rectangle to visualize the bounding rect
-    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
  
-    # get the min area rect
-    rect = cv2.minAreaRect(c)
-    box = cv2.boxPoints(rect)
-    # convert all coordinates floating point values to int
-    box = np.int0(box)
-    # draw a red 'nghien' rectangle
-    # cv2.drawContours(img, [box], 0, (0, 0, 255))
- 
-    # finally, get the min enclosing circle
-    (x, y), radius = cv2.minEnclosingCircle(c)
-    # convert all values to int
-    center = (int(x), int(y))
-    radius = int(radius)
-    # and draw the circle in blue
-    # img = cv2.circle(img, center, radius, (255, 0, 0), 2)
- 
+    # It is the ratio of width to height of bounding rect of the object.
+    aspect_ratio = float(w)/h
+    area = cv2.contourArea(c)
+    rect_area = w*h
+    # Extent is the ratio of contour area to bounding rectangle area.
+    extent = float(area)/rect_area
+
+    print "aspect ratio: %s extent: %s" % (aspect_ratio, extent)
+    if ( aspect_ratio > 1 ) & ( extent < 0.3 ):
+        cv2.imshow("contours", imageToMarkup)
+        cv2.rectangle(imageToMarkup, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        # get the min area rect
+        rect = cv2.minAreaRect(c)
+        box = cv2.boxPoints(rect)
+        # convert all coordinates floating point values to int
+        box = np.int0(box)
+        # draw a red 'nghien' rectangle
+        cv2.drawContours(imageToMarkup, [box], 0, (0, 0, 255))
+    
+        # finally, get the min enclosing circle
+        (x, y), radius = cv2.minEnclosingCircle(c)
+        # convert all values to int
+        center = (int(x), int(y))
+        radius = int(radius)
+        # and draw the circle in blue
+        # imageToMarkup = cv2.circle(imageToMarkup, center, radius, (255, 0, 0), 2)
+    else:
+        print "contour does not match!"
+
 print(len(contours))
 
 
