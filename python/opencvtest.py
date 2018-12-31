@@ -47,7 +47,7 @@ def findTheTopMiddleOfAbox(box):
 
 iteration = 0
 
-testingMode = False
+testingMode = True
 
 # framesToCheck = [202,245, 254, 255, 256, 257, 258, 259, 260, 266, 267, 268, 269, 277, 422, 423, 424, 425, 426, 427, 428, 429, 430, 435, 440, 445, 448, 478, 489, 490, 491, 492, 493]
 # print len(framesToCheck)
@@ -57,14 +57,16 @@ while iteration < 542:
 
     startTime = int((time.time() * 1000))
 
+    # print "hi"
+    
     # imgpath = '2016-vision-master\\imgproc\\RealFullField\\%s.jpg' % framesToCheck[x]
-    imgpath = '2016-vision-master\\imgproc\\RealFullField\\%s.jpg' % iteration
-
+    imgpath = '..\\images\\RealFullField\\%s.jpg' % iteration
+    print imgpath
     # iteration = framesToCheck[x]
     iteration += 1
 
     if os.path.exists(imgpath):
-
+        
         img = cv2.pyrDown(cv2.imread(imgpath, cv2.IMREAD_UNCHANGED))
         print "iteration: %s" % iteration
 
@@ -144,8 +146,8 @@ while iteration < 542:
 
         cv2.imshow("contours", imageToMarkup)
 
-        writepath = 'output\\%s_processed.png' % iteration
-        cv2.imwrite(writepath,img)
+        # writepath = '..\\images\\output\\%s_processed.png' % iteration
+        # cv2.imwrite(writepath,img)
 
         if testingMode is True:
             cv2.imshow("threshed image plus markup", threshed_img)
@@ -157,3 +159,5 @@ while iteration < 542:
         cv2.waitKey(0)
 
         cv2.destroyAllWindows()
+    else:
+        print "file does not exist, skipping"
