@@ -1,0 +1,38 @@
+// Adds gradle support for Java, Eclipse, and IntelliJ
+plugins {
+    id "java"
+    id "eclipse"
+    id "idea"
+    id "edu.wpi.first.GradleRIO" version "2019.0.0-alpha-3"
+}
+
+group = 'org.team5940'
+version = '0.0.0'
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    // Use 'jcenter' for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+}
+
+// In this section you declare the dependencies for your production and test code
+dependencies {
+    // testCompile 'junit:junit:3.8.2'
+    // compile 'com.google.code.gson:gson:2.8.1'
+    compile wpilib()
+}
+
+task wrapper(type: Wrapper) {
+   gradleVersion = '4.4'
+}
+
+task docs(type: Exec) {
+  workingDir './src/main/java'
+
+  executable 'javadoc'
+
+  args '-d', '../../../docs', '-subpackages', 'org.team5940.pantry.logging'
+
+  ignoreExitValue true
+}
