@@ -3,17 +3,18 @@ package org.team5940.pantry.vision.processing;
 import org.team5940.pantry.vision.config;
 import org.team5940.pantry.vision.Main.cameraMode;
 
+import java.lang.IllegalArgumentException;
+
 public class PixelsToAngles {
 
     double[] fov, resolution;
     double focal_length;
 
 
-
+    /** make sure that you catch this illegal argument exception :D */
     public PixelsToAngles(cameraMode cameramode) {
         if (cameramode == cameraMode.LIMELIGHT) {
-            this.fov = config.limelight_cam.fov;
-            this.resolution = config.limelight_cam.resolution;
+            throw new IllegalArgumentException("The LIMELIGHT does not need pixels converted to angles!");
         }
         else if (cameramode == cameraMode.LIVECAM) {
             this.fov = config.ms_livecam.fov;

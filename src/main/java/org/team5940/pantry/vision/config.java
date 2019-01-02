@@ -2,6 +2,7 @@ package org.team5940.pantry.vision;
 
 public class config {
     // public static double[] crosshair = {0,0}; // non final because crosshair might need to move
+    public static double averageLatency = 0.01; // TODO make this calibrate itself? and tune it
 
     public static class limelight_cam {
         public static final double[] pose = {0,0,0,0,0}; // [0] x offset, [1] y offset, [2] z offset, [3] yaw offset, [4] pitch offset (positive angle is clockwise)
