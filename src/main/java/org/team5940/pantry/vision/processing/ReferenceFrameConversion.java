@@ -10,8 +10,8 @@ package org.team5940.pantry.vision.processing;
  */
 
 
-public class Kinematics {
-    double[] cameraPose;
+public class ReferenceFrameConversion {
+    double[] cameraPose, targetAngles;
 
     /**
      * The distance calculation mode of this instance of 
@@ -20,8 +20,33 @@ public class Kinematics {
      */
 
 
-    public Kinematics(double[] cameraPose) {
-        this.cameraPose = cameraPose
+    public ReferenceFrameConversion(double[] cameraPose) {
+        this.cameraPose = cameraPose;
+    }
+
+    /**
+     * Convert the target theta_x, theta_y angle measured by the camera
+     * into the theta_x, theta_y angle relative to the robot
+     * @param cameraTargetLoc in (yaw, pitch) [(theta_x, theta_y)] format
+     */
+    public double[] convertToRobotAngleReferenceFrame(double[] cameraTargetLoc) {
+        cameraTargetLoc[0] += cameraPose[3];
+        cameraTargetLoc[1] +=cameraPose[4];
+        return cameraTargetLoc;
+    }
+
+    /**
+     * Convert a target (x, y, z) from the camera's referenc frame
+     * into the robot's reference frame. Make sure that you've already normalized the
+     * target angle! otherwise things will break
+     * @param x,y,z of the target (paralel to the robot reference frame! if not call convertToRobotAngleReferenceFrame first!)
+     * @return x,y,z normalized to the robot reference frame
+     */
+    public double[] convertToRobotDistanceReferenceFrame(double[] targetXYZ) {
+        targetXYZ[0] -= cameraPose[0];
+        targetXYZ[1] -= cameraPose[1];
+        targetXYZ[2] -= cameraPose[2];
+        return targetXYZ;
     }
 
 
