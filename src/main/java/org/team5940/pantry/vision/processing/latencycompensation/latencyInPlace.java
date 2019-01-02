@@ -68,9 +68,7 @@ public class latencyInPlace {
         relative to us. therefore we decrement the targetYaw by the delta
         */ 
         targetYaw -= deltaAngle;
-
         return targetYaw;
-
     }
 
 }
