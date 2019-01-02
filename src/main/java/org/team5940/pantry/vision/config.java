@@ -1,7 +1,7 @@
 package org.team5940.pantry.vision;
 
 public class config {
-    public static double[] crosshair = {0,0}; // non final because crosshair might need to move
+    // public static double[] crosshair = {0,0}; // non final because crosshair might need to move
 
     public static class limelight_cam {
         public static final double[] pose = {0,0,0,0,0};

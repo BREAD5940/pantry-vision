@@ -59,6 +59,22 @@ public class Main {
         LIMELIGHT, LIVECAM;
     }
 
+    public static enum distanceMode
+    {
+        DIMENSION, AREA, ELEVATION;
+    }
+
+    /** 
+     * The latency compensation mode of the instance of pantry-vision. This
+     * changes what mode latency compensation will run in.
+     */
+    public static enum latencyMode 
+    {
+        IN_PLACE, MOVING, NONE;
+    }
+    /** Enums for mode */
+    latencyMode latencymode; 
+    distanceMode distancemode;
     cameraMode cameramode;
 
     /** 
@@ -100,23 +116,35 @@ public class Main {
     }
 
     
-    public void init(){
-
+    public double getGyro() {
+        return gyro.getAngle();
     }
 
     /** 
-     * Return the current target position
-     * @return a double[] with target x, y, 
+     * Return the current target position and update kinematics
+     * @return a double[] with target x, y, z and heading, elevation, range.
+     * Latency compensation is done in "in place" mode
      */
-    public void update() {
-        NTdata = tableIO.getEverything();
-        if (latencymode == latencyMode.NONE) {
-            // Don't do any latency compensation, don't do
-            // Any transformations, just return target (x,y)
-            // as is
-
-
-        }
+    public double[] updateInPlace(){
+        return kinematics.updateInPlace();
     }
+    
+    /** 
+y     * @return a double[] with target x, y, z and heading, elevation, range.
+     * Latency compensation is done in "moving" mode
+     */
+    public double[] updateMoving(double m_left_pos, double m_right_pos){
+        return kinematics.updateMoving(m_left_pos, m_right_pos);
+    }
+
+    /** 
+     * Return the current target position and update kinematics
+     * @return a double[] with target x, y, z and heading, elevation, range.
+     * Latency compensation is not done
+     */
+    public double[] update() {
+        return kinematics.update();
+    }
+
 
 }
