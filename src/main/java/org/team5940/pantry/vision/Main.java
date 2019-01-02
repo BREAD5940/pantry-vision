@@ -1,9 +1,6 @@
 package org.team5940.pantry.vision;
 
 import org.team5940.pantry.vision.io.NetworkTableIO;
-import org.team5940.pantry.vision.processing.Kinematics;
-import org.team5940.pantry.vision.processing.Kinematics.distanceMode;
-import org.team5940.pantry.vision.processing.Kinematics.latencyMode;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 
 /**
@@ -51,7 +48,6 @@ public class Main {
     double[] crosshairPos;
     double[] cameraRes;
     double[] cameraPose;
-    Kinematics kinematics;
 
 
     public static enum cameraMode
@@ -95,56 +91,11 @@ public class Main {
         // this.distancemode = distancemode;
         this.gyro = gyro;
 
-        if ( cameramode == cameraMode.LIMELIGHT ) {
-            kinematics = new Kinematics(config.limelight_cam.resolution, 
-                config.limelight_cam.fov, 
-                config.limelight_cam.pose, 
-                config.crosshair,
-                distancemode,
-                latencymode);
-        }
-        else if ( cameramode == cameramode.LIVECAM ) {
-            kinematics = new Kinematics(config.ms_livecam.resolution, 
-                config.ms_livecam.fov, 
-                config.ms_livecam.pose, 
-                config.crosshair,
-                distancemode,
-                latencymode);
-        }
+
 
 
     }
 
-    
-    public double getGyro() {
-        return gyro.getAngle();
-    }
-
-    /** 
-     * Return the current target position and update kinematics
-     * @return a double[] with target x, y, z and heading, elevation, range.
-     * Latency compensation is done in "in place" mode
-     */
-    public double[] updateInPlace(){
-        return kinematics.updateInPlace();
-    }
-    
-    /** 
-y     * @return a double[] with target x, y, z and heading, elevation, range.
-     * Latency compensation is done in "moving" mode
-     */
-    public double[] updateMoving(double m_left_pos, double m_right_pos){
-        return kinematics.updateMoving(m_left_pos, m_right_pos);
-    }
-
-    /** 
-     * Return the current target position and update kinematics
-     * @return a double[] with target x, y, z and heading, elevation, range.
-     * Latency compensation is not done
-     */
-    public double[] update() {
-        return kinematics.update();
-    }
 
 
 }
