@@ -1,0 +1,30 @@
+{
+    "run": {
+        "default": "",
+        "items": [
+            {
+                "name": "Pantry-Vision",
+                "projectName": "Pantry-Vision",
+                "workingDirectory": "c:\\Users\\matth\\Documents\\GitHub\\FRCcode\\pantry-vision",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            }
+        ]
+    },
+    "debug": {
+        "default": "",
+        "items": [
+            {
+                "name": "Pantry-Vision",
+                "projectName": "Pantry-Vision",
+                "workingDirectory": "c:\\Users\\matth\\Documents\\GitHub\\FRCcode\\pantry-vision",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            }
+        ]
+    }
+}

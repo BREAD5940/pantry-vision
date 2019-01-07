@@ -21,6 +21,20 @@ dependencies {
     // testCompile 'junit:junit:3.8.2'
     // compile 'com.google.code.gson:gson:2.8.1'
     compile wpilib()
+    testCompileOnly(
+            'junit:junit:4.12'
+    )
+    testImplementation(
+            'org.junit.jupiter:junit-jupiter-api:5.1.0'
+    )
+    testRuntimeOnly(
+            'org.junit.jupiter:junit-jupiter-engine:5.1.0',
+            'org.junit.vintage:junit-vintage-engine:5.1.0'
+    )
+}
+
+test {
+    useJUnitPlatform()
 }
 
 task wrapper(type: Wrapper) {
