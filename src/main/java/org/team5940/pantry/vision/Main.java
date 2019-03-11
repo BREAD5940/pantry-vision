@@ -57,7 +57,7 @@ public class Main {
      * TODO check that they gyro passed in will work as expected
      */
     public void main(String[] args) {
-       
+       GripPipeline pipeline = new GripPipeline();
 
     }
 

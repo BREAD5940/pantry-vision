@@ -1,4 +1,7 @@
 {
     "python.pythonPath": "C:\\Python27\\python.exe",
-    "python.linting.pylintArgs": ["--extension-pkg-whitelist=cv2, numpy"],
+    "python.linting.pylintArgs": [
+        "--extension-pkg-whitelist=cv2, numpy"
+    ],
+    "java.configuration.updateBuildConfiguration": "automatic",
 }
