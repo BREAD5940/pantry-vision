@@ -1,7 +1,7 @@
 package org.team5940.pantry.vision;
 
-import org.team5940.pantry.vision.io.NetworkTableIO;
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+// import org.team5940.pantry.vision.io.NetworkTableIO;
+// import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 
 /**
  * This is the main vision class. Call it to do everything
@@ -42,36 +42,6 @@ import edu.wpi.first.wpilibj.ADXRS450_Gyro;
  */
 
 public class Main {
-    NetworkTableIO tableIO;
-    ADXRS450_Gyro gyro;
-    double[] NTdata;
-    double[] crosshairPos;
-    double[] cameraRes;
-    double[] cameraPose;
-
-
-    public static enum cameraMode
-    {
-        LIMELIGHT, LIVECAM;
-    }
-
-    public static enum distanceMode
-    {
-        DIMENSION, AREA, ELEVATION;
-    }
-
-    /** 
-     * The latency compensation mode of the instance of pantry-vision. This
-     * changes what mode latency compensation will run in.
-     */
-    public static enum latencyMode 
-    {
-        IN_PLACE, MOVING, NONE;
-    }
-    /** Enums for mode */
-    latencyMode latencymode; 
-    distanceMode distancemode;
-    cameraMode cameramode;
 
     /** 
      * Initilize everything we need from our coprocessor (ahem, networktables).
@@ -84,15 +54,9 @@ public class Main {
      * 
      * TODO check that they gyro passed in will work as expected
      */
-    public void main(String[] args, ADXRS450_Gyro gyro, cameraMode camera, distanceMode distancemode, latencyMode latencymode) {
-        tableIO = new NetworkTableIO(args[0]);
-        // this.latencymode = latencymode;
-        // this.cameramode = cameramode;
-        // this.distancemode = distancemode;
-        this.gyro = gyro;
-
-
-
+    public void main(String[] args) {
+       
+        
 
     }
 
