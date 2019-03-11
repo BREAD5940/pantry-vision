@@ -1,5 +1,7 @@
 package org.team5940.pantry.vision;
 
+import edu.wpi.first.wpilibj.vision.VisionRunner;
+
 // import org.team5940.pantry.vision.io.NetworkTableIO;
 // import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 
@@ -56,7 +58,6 @@ public class Main {
      */
     public void main(String[] args) {
        
-        
 
     }
 
