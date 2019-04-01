@@ -60,8 +60,8 @@ while iteration < 542:
     # print "hi"
     
     # imgpath = '2016-vision-master\\imgproc\\RealFullField\\%s.jpg' % framesToCheck[x]
-    imgpath = '..\\images\\RealFullField\\%s.jpg' % iteration
-    print imgpath
+    # imgpath = '..\\images\\RealFullField\\%s.jpg' % iteration
+    # print imgpath
     # iteration = framesToCheck[x]
     iteration += 1
 
