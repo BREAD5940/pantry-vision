@@ -1,7 +1,9 @@
 import cv2 as cv2
 import numpy as np
+from scipy.spatial import distance as dist
 import math
-from enum import Enum
+# from enum import Enum
+# import random 
 
 try:
     from cv2 import cv2
@@ -42,6 +44,7 @@ class GripPipeline:
         self.__filter_contours_max_ratio = 20.0
 
         self.filter_contours_output = None
+        self.__hsv_threshold_input = None
 
 
 
@@ -136,9 +139,6 @@ class GripPipeline:
             area = cv2.contourArea(contour)
             if (area < min_area):
                 continue
-
-            print("contour area %s" % cv2.contourArea(contour))
-
             if (cv2.arcLength(contour, True) < min_perimeter):
                 continue
             hull = cv2.convexHull(contour)
@@ -155,59 +155,167 @@ class GripPipeline:
 
 
 class Box:
-    def __init__(self, rect, theBox):
+    def __init__(self, theBox):
         self.coordinates = theBox
-        self.rect = rect
 
         # self.shortSide = None
         # self.longSide = None
-        self.angle = None
+        # self.angle = None
+        self.orderedPoints = None
 
-        if rect.size.width < rect.size.height:
-            self.angle = rect.angle+180
-        else:
-            self.angle = rect.angle+90
+        boxPoints = cv2.boxPoints(theBox)
+        self.boxPoints = boxPoints
 
-        # figure out the short and long side lengths
+    def order_points(self, pts):
+        # sort the points based on their x-coordinates
+        xSorted = pts[np.argsort(pts[:, 0]), :]
 
-    def find_short_long(self, coordinates):
-        return
+        # grab the left-most and right-most points from the sorted
+        # x-roodinate points
+        leftMost = xSorted[:2, :]
+        rightMost = xSorted[2:, :]
+
+        # now, sort the left-most coordinates according to their
+        # y-coordinates so we can grab the top-left and bottom-left
+        # points, respectively
+        leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
+        (tl, bl) = leftMost
+
+        # now that we have the top-left coordinate, use it as an
+        # anchor to calculate the Euclidean distance between the
+        # top-left and right-most points; by the Pythagorean
+        # theorem, the point with the largest distance will be
+        # our bottom-right point
+        D = dist.cdist(tl[np.newaxis], rightMost, "euclidean")[0]
+        (br, tr) = rightMost[np.argsort(D)[::-1], :]
+
+        # return the coordinates in top-left, top-right,
+        # bottom-right, and bottom-left order
+
+        self.orderedPoints = np.array([tl, tr, br, bl], dtype="float32")
+
+        img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
+                                     cv2.IMREAD_UNCHANGED))
+        cv2.circle(img, (tl), 4, (255, 0, 0), -1)
+
+        cv2.imshow(img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        return self.orderedPoints
 
 
 
 pipe = GripPipeline()
 
-img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
+loadedImage = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
                              cv2.IMREAD_UNCHANGED))
 
-pipe.process(img)
+pipe.process(loadedImage)
 
-toAnnotate = pipe.hsv_threshold_output
+cropped = loadedImage.copy()
+
+# toAnnotate = pipe.hsv_threshold_output
 
 cv2.imshow('before', pipe.hsv_threshold_output)
 
 contours = pipe.filter_contours_output
 
-boxes = []
+contours = np.asarray(contours)
 
-for contour_ in contours:
-    rect = cv2.minAreaRect(contour_)
-    box = cv2.boxPoints(rect)
-    box = np.int0(box)
-    cv2.drawContours(img, [box], 0, (0, 0, 255))
+print(contours.shape)
 
-    newBox = Box(rect, box)
-    boxes.append(newBox)
+def getRect(contours_):
+
+    toReturn = []
+
+    for c in contours_:
+        # get the bounding rect
+        x, y, w, h = cv2.boundingRect(c)
+
+        print(x, y, w, h)
+        buffer = 7
+        # x,y is top left of the box boi
+        x -= int(buffer/2)
+        y -= int(buffer/2)
+        w += buffer
+        h += buffer
+
+        # draw a green rectangle to visualize the bounding rect
+        # cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 1)
+
+        toReturn.append([x, y, x+w, y+h])
+    
+    return toReturn
+
+def crop(img_, range_):
+    img_ = img_[range_[1]:range_[3], range_[0]:range_[2]]
+
+    # print(img_)
+
+    return img_
+
+# a list of rectangles
+rectangles = getRect(contours)
+
+# a list of cropped images
+visionTape = []
+
+for rect in rectangles:
+    newimg = crop(cropped, rect)
+    visionTape.append(newimg)
+
+visionTapeConers = []
+
+# find the harris corners and subpixel corners
+for iteration, tape in enumerate(visionTape):
+    # find Harris corners
+    gray = cv2.cvtColor(tape, cv2.COLOR_BGR2GRAY)
+    gray = np.float32(gray)
+    dst = cv2.cornerHarris(gray, 2, 3, 0.04)
+    dst = cv2.dilate(dst,None)
+    ret, dst = cv2.threshold(dst,0.01*dst.max(),255,0)
+    dst = np.uint8(dst)
+
+    # find centroids
+    ret, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
+
+    # define the criteria to stop and refine the corners
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+    corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
+
+    visionTapeConers.append(corners)
+
+    # Now draw them
+    res = np.hstack((centroids,corners))
+    res = np.int0(res)
+    tape[res[:,1],res[:,0]]=[0,0,255]
+    tape[res[:,3],res[:,2]] = [0,255,0]
+
+
+    # name = 'boi number %s' % iteration
+    # cv2.namedWindow(name,cv2.WINDOW_GUI_EXPANDED)
+    # cv2.imshow(name, tape)
+
+
+# to display all the images
+# for tape in visionTape:
+#     cv2.imshow("tape %s" % random.randint(0,100), tape)
+
+
+
+
+
+
+
 
 # print(boxes)
 
 cv2.namedWindow('image',cv2.WINDOW_NORMAL)
-
-cv2.imshow('image', img)
-
+cv2.imshow('image', loadedImage)
 cv2.resizeWindow('image', 800,600)
 
-# cv2.waitKey(0)
+cv2.waitKey(0)
 
 cv2.destroyAllWindows()
 
