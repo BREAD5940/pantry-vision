@@ -3,15 +3,18 @@ plugins {
     id "java"
     id "eclipse"
     id "idea"
-    id "edu.wpi.first.GradleRIO" version "2019.0.0-alpha-3"
+    // id "edu.wpi.first.GradleRIO" version "2019.0.0-alpha-3"
 }
 
 group = 'org.team5940'
 version = '0.0.0'
 
 apply plugin: 'application'
+
 // mainClassName = 'pantryvisualizer.Visualizer'
 mainClassName = 'org.team5940.pantry.vision.Main'
+
+// applicationDefaultJvmArgs= ["-Djava.library.path=libs/libopencv_java401.dylib"]
 
 
 // In this section you declare where to find the dependencies of your project
@@ -25,7 +28,7 @@ repositories {
 dependencies {
     // testCompile 'junit:junit:3.8.2'
     // compile 'com.google.code.gson:gson:2.8.1'
-    compile wpilib()
+    // compile wpilib()
     testCompileOnly(
             'junit:junit:4.12'
     )
@@ -36,6 +39,9 @@ dependencies {
             'org.junit.jupiter:junit-jupiter-engine:5.1.0',
             'org.junit.vintage:junit-vintage-engine:5.1.0'
     )
+
+    compile files('libs/opencv-401.jar')
+
 }
 
 test {

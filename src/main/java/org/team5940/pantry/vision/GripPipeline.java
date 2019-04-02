@@ -99,6 +99,34 @@ public class GripPipeline {
 		Imgproc.findContours(input, contours, hierarchy, mode, method);
 	}
 
+	/**
+	 * @return the hsvThresholdOutput
+	 */
+	public Mat getHsvThresholdOutput() {
+		return hsvThresholdOutput;
+	}
+
+	/**
+	 * @param hsvThresholdOutput the hsvThresholdOutput to set
+	 */
+	public void setHsvThresholdOutput(Mat hsvThresholdOutput) {
+		this.hsvThresholdOutput = hsvThresholdOutput;
+	}
+
+	/**
+	 * @return the findContoursOutput
+	 */
+	public ArrayList<MatOfPoint> getFindContoursOutput() {
+		return findContoursOutput;
+	}
+
+	/**
+	 * @param findContoursOutput the findContoursOutput to set
+	 */
+	public void setFindContoursOutput(ArrayList<MatOfPoint> findContoursOutput) {
+		this.findContoursOutput = findContoursOutput;
+	}
+
 
 
 

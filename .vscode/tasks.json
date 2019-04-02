@@ -14,9 +14,9 @@
             "problemMatcher": []
         },
         {
-            "label": "Run Vision tests",
+            "label": "Run App",
             "type": "shell",
-            "command": "./gradlew test",
+            "command": "./gradlew run",
             "group": {
                 "kind": "build",
                 "isDefault": true
