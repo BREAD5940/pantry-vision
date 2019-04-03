@@ -223,8 +223,6 @@ contours = pipe.filter_contours_output
 
 contours = np.asarray(contours)
 
-print(contours.shape)
-
 def getRect(contours_):
 
     toReturn = []
@@ -233,7 +231,6 @@ def getRect(contours_):
         # get the bounding rect
         x, y, w, h = cv2.boundingRect(c)
 
-        print(x, y, w, h)
         buffer = 7
         # x,y is top left of the box boi
         x -= int(buffer/2)
@@ -273,6 +270,7 @@ for iteration, tape in enumerate(visionTape):
     gray = cv2.cvtColor(tape, cv2.COLOR_BGR2GRAY)
     gray = np.float32(gray)
     dst = cv2.cornerHarris(gray, 2, 3, 0.04)
+    # dst = cv2.goodFeaturesToTrack(gray, 4, 0.05, 2.0, useHarrisDetector=True)
     dst = cv2.dilate(dst,None)
     ret, dst = cv2.threshold(dst,0.01*dst.max(),255,0)
     dst = np.uint8(dst)
@@ -284,23 +282,53 @@ for iteration, tape in enumerate(visionTape):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
     corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
 
+
+    corners = np.delete(corners, (0), axis=0)
+
     visionTapeConers.append(corners)
 
+    # print(corners.shape)
+    # print("centroids")
+    # print(centroids)
+
     # Now draw them
-    res = np.hstack((centroids,corners))
-    res = np.int0(res)
-    tape[res[:,1],res[:,0]]=[0,0,255]
-    tape[res[:,3],res[:,2]] = [0,255,0]
+    # res = np.hstack((corners))
+    corners = np.int0(corners)
+    # print(corners)
+    tape[corners[:,1],corners[:,0]]=[0, 0, 255]
+    tape[corners[:,1],corners[:,0]] = [0, 255, 0]
 
+annotatedImage = loadedImage.copy()
 
-    # name = 'boi number %s' % iteration
-    # cv2.namedWindow(name,cv2.WINDOW_GUI_EXPANDED)
-    # cv2.imshow(name, tape)
+# shift the corners over so that their coordinates are back in the global scope
+for i, corner in enumerate(visionTapeConers):
+    
+    rect = rectangles[i]
+    x = rect[0]
+    y = rect[1]
+
+    # cycle through all the corners and offset them
+    for c in corner:
+        c[0] += x
+        c[1] += y
+
+    
+    print("CORNER: ")
+    # print(corner)
+
+    for point in corner:
+        print(point)
+        annotatedImage[int(point[1]), int(point[0])] = [0, 0, 255]
+
+    
 
 
 # to display all the images
-# for tape in visionTape:
-#     cv2.imshow("tape %s" % random.randint(0,100), tape)
+for i, tape in enumerate(visionTape):
+    cv2.namedWindow("tape %s" % i,cv2.WINDOW_GUI_EXPANDED)
+    cv2.resizeWindow("tape %s" % i, 400,600)
+
+    cv2.imshow("tape %s" % i, tape)
 
 
 
@@ -312,7 +340,7 @@ for iteration, tape in enumerate(visionTape):
 # print(boxes)
 
 cv2.namedWindow('image',cv2.WINDOW_NORMAL)
-cv2.imshow('image', loadedImage)
+cv2.imshow('image', annotatedImage)
 cv2.resizeWindow('image', 800,600)
 
 cv2.waitKey(0)
