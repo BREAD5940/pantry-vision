@@ -42,6 +42,12 @@ class VisionTape:
 
         return self.minAreaRect[0]
 
+    def get_area(self):
+        contour = self.contour
+        return cv2.contourArea(contour)
+
+
+
     def get_x_center_coordinate(self):
         if(self.minAreaRect is None):
             self.determine_direction(self.contour)
@@ -144,7 +150,7 @@ class VisionTape:
 
         # self.orderedPoints = np.array([tl, tr, br, bl], dtype="float32")
 
-        # img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
+        # img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark72in.jpg",
         #                              cv2.IMREAD_UNCHANGED))
         # cv2.circle(img, (tl), 4, (255, 0, 0), -1)
 
@@ -156,17 +162,31 @@ class VisionTape:
 
 class VisionTarget:
     def __init__(self, individualTapes):
-        self.tapes = individualTapes
+        """
+        A vision target, consisting of two indivitual VisionTape objects
+        
+        Args:
+            individualTapes in the form left, right
+        
+        """
+        self.individualTapes = individualTapes
         self.hull = None
 
+    def get_area(self):
+        return sum(f.get_area() for f in self.individualTapes)
+
     # @staticmethod
-    def findCenter(self):
-        contours = [self.tapes[0].contour, self.tapes[1].contour]
+    def get_center(self):
+        centerX = (self.individualTapes[0].get_center()[0] + self.individualTapes[1].get_center()[0])/2
+        centerY = (self.individualTapes[0].get_center()[1] + self.individualTapes[1].get_center()[1])/2
 
-        merged = np.vstack(contours[i] for i in range(len(contours)))
-        self.hull = cv2.convexHull(merged)
+        return [centerX, centerY]
 
-        
+    def get_center_offset(self, res):
+        xCoord = self.get_center()[0]
+        return xCoord - (res/2.0)
+
+        # i guess just the average of the two centers
 
 class GripPipeline:
     """
@@ -206,7 +226,7 @@ class GripPipeline:
 
         self.boundingRects = None
         self.visionTapes = []
-        self.visionPairs = []
+        self.visionPair = None
 
     def process(self, source0, horizontalRes = 320):
         """
@@ -251,10 +271,18 @@ class GripPipeline:
         # pair targets up
         self.visionPairs = self.decideVisionPairs(self.visionTapes, horizontalRes)
 
-        self.printVisionTapes(self.visionTapes)
-
         # for debugging, annotate the image
         temp = source0.copy()
+        # for f in self.visionPairs:
+        loc = self.visionPairs.get_center()
+        loc = np.int0(loc)
+        loc = (loc[0], loc[1])
+        cv2.circle(temp, tuple(loc), 3, (0,0,255))
+        cv2.line(temp, tuple(np.int0(self.visionPairs.individualTapes[0].get_center())), tuple(np.int0(self.visionPairs.individualTapes[1].get_center())), (255, 255, 0))
+
+        self.printVisionTapes(self.visionTapes)
+
+  
         for e in self.visionTapes:
             loc = e.get_center()
             loc = np.int0(loc)
@@ -294,9 +322,17 @@ class GripPipeline:
             # print("HULLO")
             # print(i)
             target = VisionTarget([sortedList[i], sortedList[i+1]])
-            target.findCenter()
+            target.get_center()
+            pairs.append(target)
 
-        return pairs
+        # pairs = sorted(pairs, key = VisionTape.get_area)
+
+        # uncomment me to sort by area!
+        return max(pairs, key = VisionTarget.get_area)
+        # sort by offset from center
+        # return min(pairs, key = lambda target : abs(target.get_center_offset(horizontalRes)))
+
+        # return pairs
 
     @staticmethod
     def sortVisionTargets(listOfTargets):
@@ -446,7 +482,7 @@ class GripPipeline:
 
 pipe = GripPipeline()
 
-loadedImage = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
+loadedImage = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark72in.jpg",
                              cv2.IMREAD_UNCHANGED))
 
 pipe.process(loadedImage, horizontalRes = 320)
@@ -583,7 +619,7 @@ cv2.imshow('before', pipe.hsv_threshold_output)
 
 
 
-cv2.waitKey(20000)
+cv2.waitKey(0)
 
 cv2.destroyAllWindows()
 
