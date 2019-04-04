@@ -23,7 +23,7 @@ class VisionTape:
         self.minAreaRect = None
         self.contour = contour
         self.center = None
-        self.corners = []
+        self.corners = None
         self.harrisCorners = None
         self.direction = None
 
@@ -171,7 +171,27 @@ class VisionTape:
         
         print("detected corner area\n", self.corners)
 
+    def find_corner_points(self, contour):
+        M = cv2.moments(contour)
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        # Filter points by where they are relative to the center
+        TL_pts = list(filter(lambda C: C[0][0] < cx and C[0][1] < cy, contour))
+        TR_pts = list(filter(lambda C: C[0][0] > cx and C[0][1] < cy, contour))
+        BR_pts = list(filter(lambda C: C[0][0] > cx and C[0][1] > cy, contour))
+        BL_pts = list(filter(lambda C: C[0][0] < cx and C[0][1] > cy, contour))
+        if min(len(TL_pts), len(TR_pts), len(BR_pts), len(BL_pts)) == 0:
+            return None
+        # Categorize the "corner point" by being farthest from the center
+        farthest = lambda C: (C[0][0]-cx)**2 + (C[0][1]-cy)**2
+        tl = list(sorted(TL_pts, key=farthest, reverse=True))[0]
+        tr = list(sorted(TR_pts, key=farthest, reverse=True))[0]
+        br = list(sorted(BR_pts, key=farthest, reverse=True))[0]
+        bl = list(sorted(BL_pts, key=farthest, reverse=True))[0]
 
+        toReturn = np.array([tl, tr, br, bl])
+        self.corners = toReturn
+        return toReturn
 
     def order_points(self):
 
@@ -256,7 +276,14 @@ class VisionTarget:
     def get_center_offset(self, res):
         xCoord = self.get_center()[0]
         return xCoord - (res/2.0)
-    
+
+    def get_corner_points(self):
+        toReturn = []
+        for tape in self.individualTapes:
+            toReturn.append(tape.find_corner_points(tape.contour))
+
+        return toReturn
+
     def get_convex_hull_4_sided(self):
         # contour1 = self.individualTapes[0]
         # contour2 = self.individualTapes[1]
@@ -264,13 +291,16 @@ class VisionTarget:
         hullBoi = []
         # bigBoi = contour1.append(contour2)
         for tape in self.individualTapes:
-            hullBoi.append(cv2.convexHull(tape., False))
+            foundHull = cv2.convexHull(tape.contour, False)
+            # now s i m p l i f y
 
-        convexHull = cv2.convexHull(bigBoi)
+            hullBoi.append(foundHull)
 
-        self.hull = convexHull
+        convexHull = cv2.convexHull(hullBoi)
 
-        return convexHull
+        self.hull = hullBoi
+
+        return hullBoi
 
         # i guess just the average of the two centers
 
@@ -371,12 +401,14 @@ class GripPipeline:
 
 
         # self.detectedPose = self.solvePNPCorners(self.visionPair, None, None)
-        cv2.drawContours(temp, self.visionPair.get_convex_hull_4_sided(), -1, (100, 100, 255))
+        # cv2.drawContours(temp, self.visionPair.find_corner_points(), -1, (100, 100, 255))
+
+        for point in self.visionPair.
 
         for i, cont in enumerate(self.filter_contours_output):
             cv2.drawContours(temp, self.filter_contours_output, i, (255, 0, 0))
 
-        cv2.drawContours(temp, )
+        # cv2.drawContours(temp, )
 
         temp = self.printVisionTapes(self.visionTapes, temp)
 
