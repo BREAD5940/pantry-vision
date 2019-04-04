@@ -37,9 +37,19 @@ class VisionTape:
         if(self.minAreaRect is None):
             self.determine_direction(self.contour)
         
+        # print("center pos:")
+        # print(self.minAreaRect[0])
+
         return self.minAreaRect[0]
 
-    def get_direction(self):
+    def get_x_center_coordinate(self):
+        if(self.minAreaRect is None):
+            self.determine_direction(self.contour)
+        
+        return self.get_center()[0]
+
+
+    def get_angle(self):
         """
         Get the angle of the min area rectangle surrounding this contour
 
@@ -50,6 +60,20 @@ class VisionTape:
             self.determine_direction(self.contour)
         
         return self.minAreaRect[2]
+
+    def get_direction(self):
+        """
+        Get the direction of the min area rectangle surrounding this contour
+
+        Returns:
+            The direction, left/right
+        """
+        if self.direction is None:
+            self.determine_direction(self.contour)
+        
+        return self.direction
+
+
 
     def determine_direction(self, contour):
 
@@ -67,16 +91,22 @@ class VisionTape:
         self.minAreaRect = minRect
 
         if(minRect[2] > 0):
-            self.direction = DIRECTION.LEFT
-        else:
             self.direction = DIRECTION.RIGHT
+        else:
+            self.direction = DIRECTION.LEFT
 
         self.minAreaRect = minRect
         return minRect
 
-    def compare(self, other):
-        # this needs to return -1 if it's less than the other, 0 if same, or 1 of greater than other
-        if self.get_center
+    # @staticmethod
+    # def compare(item1, item2):
+    #     # this needs to return -1 if it's less than the other, 0 if same, or 1 of greater than other
+    #     if item1.get_center()[1] < item2.get_center()[1]:
+    #         return -1
+    #     elif item1.get_center()[1] > item2.get_center()[1]:
+    #         return 1
+    #     else:
+    #         return 0
 
 
 
@@ -124,6 +154,19 @@ class VisionTape:
 
         # return self.orderedPoints
 
+class VisionTarget:
+    def __init__(self, individualTapes):
+        self.tapes = individualTapes
+        self.hull = None
+
+    # @staticmethod
+    def findCenter(self):
+        contours = [self.tapes[0].contour, self.tapes[1].contour]
+
+        merged = np.vstack(contours[i] for i in range(len(contours)))
+        self.hull = cv2.convexHull(merged)
+
+        
 
 class GripPipeline:
     """
@@ -163,8 +206,9 @@ class GripPipeline:
 
         self.boundingRects = None
         self.visionTapes = []
+        self.visionPairs = []
 
-    def process(self, source0):
+    def process(self, source0, horizontalRes = 320):
         """
         Runs the pipeline and sets all outputs to new values.
         """
@@ -201,15 +245,65 @@ class GripPipeline:
                     self.crop(source0.copy(), rect), [rect[0], rect[1]], self.filter_contours_output[i]
                 )
             )
-
-    @staticmethod
-    def decideVisionPairs(self, listOfTargets):
-        # TODO do stuff
-        return
-
-    @staticmethod
-    def sortVisionTargets(self, listOfTargets):
         
+        self.visionTapes = self.sortVisionTargets(self.visionTapes)
+
+        # pair targets up
+        self.visionPairs = self.decideVisionPairs(self.visionTapes, horizontalRes)
+
+        self.printVisionTapes(self.visionTapes)
+
+        # for debugging, annotate the image
+        temp = source0.copy()
+        for e in self.visionTapes:
+            loc = e.get_center()
+            loc = np.int0(loc)
+            loc = (loc[0], loc[1])
+            cv2.circle(temp, tuple(loc), 3, (255,0,0))
+            
+
+        cv2.namedWindow('temp',cv2.WINDOW_GUI_EXPANDED)
+        cv2.imshow('temp', temp)
+        cv2.resizeWindow('temp', 800,600)
+
+
+    @staticmethod
+    def printVisionTapes(sortedList):
+        for i, item in enumerate(sortedList):
+            print(item.get_x_center_coordinate())
+
+    @staticmethod
+    def decideVisionPairs(sortedList, horizontalRes):
+        # first, eliminate one off targets hanging out on the edges
+
+        # print(sortedList[0].get_direction())
+
+        if sortedList[0].get_x_center_coordinate() < horizontalRes/2.0 and sortedList[0].get_direction() is DIRECTION.LEFT:
+                del(sortedList[0])
+
+
+        if sortedList[len(sortedList) - 1].get_x_center_coordinate() > horizontalRes/2.0 and sortedList[len(sortedList) - 1].get_direction() is DIRECTION.RIGHT:
+            del(sortedList[len(sortedList) - 1])
+
+        assert(len(sortedList) % 2 == 0)
+
+        # from here, just kinda loop gang
+        pairs = []
+
+        for i in range(0,len(sortedList) - 1,2):
+            # print("HULLO")
+            # print(i)
+            target = VisionTarget([sortedList[i], sortedList[i+1]])
+            target.findCenter()
+
+        return pairs
+
+    @staticmethod
+    def sortVisionTargets(listOfTargets):
+        sortedList = sorted(listOfTargets, key = VisionTape.get_x_center_coordinate)
+        # for i, item in enumerate(sortedList):
+        #     print(item.get_x_center_coordinate())
+        return sortedList
 
     # get a bounding rectangle
     @staticmethod
@@ -355,17 +449,17 @@ pipe = GripPipeline()
 loadedImage = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
                              cv2.IMREAD_UNCHANGED))
 
-pipe.process(loadedImage)
+pipe.process(loadedImage, horizontalRes = 320)
 
-cropped = loadedImage.copy()
+# cropped = loadedImage.copy()
 
 # toAnnotate = pipe.hsv_threshold_output
 
 cv2.imshow('before', pipe.hsv_threshold_output)
 
-contours = pipe.filter_contours_output
+# contours = pipe.filter_contours_output
 
-contours = np.asarray(contours)
+# contours = np.asarray(contours)
 
 # # get a bounding rectangle
 # def getRect(contours_):
@@ -398,85 +492,85 @@ contours = np.asarray(contours)
 #     return img_
 
 # a list of rectangles
-rectangles = getRect(contours)
+# rectangles = getRect(contours)
 
-# a list of cropped images
-visionTape = []
+# # a list of cropped images
+# visionTape = []
 
-for rect in rectangles:
-    newimg = crop(cropped, rect)
-    visionTape.append(newimg)
+# for rect in rectangles:
+#     newimg = crop(cropped, rect)
+#     visionTape.append(newimg)
 
-visionTapeConers = []
+# visionTapeConers = []
 
-# find the harris corners and subpixel corners
-for iteration, tape in enumerate(visionTape):
-    # find Harris corners
-    gray = cv2.cvtColor(tape, cv2.COLOR_BGR2GRAY)
-    gray = np.float32(gray)
-    dst = cv2.cornerHarris(gray, 2, 3, 0.04)
-    # dst = cv2.goodFeaturesToTrack(gray, 4, 0.05, 2.0, useHarrisDetector=True)
-    dst = cv2.dilate(dst,None)
-    ret, dst = cv2.threshold(dst,0.01*dst.max(),255,0)
-    dst = np.uint8(dst)
+# # find the harris corners and subpixel corners
+# for iteration, tape in enumerate(visionTape):
+#     # find Harris corners
+#     gray = cv2.cvtColor(tape, cv2.COLOR_BGR2GRAY)
+#     gray = np.float32(gray)
+#     dst = cv2.cornerHarris(gray, 2, 3, 0.04)
+#     # dst = cv2.goodFeaturesToTrack(gray, 4, 0.05, 2.0, useHarrisDetector=True)
+#     dst = cv2.dilate(dst,None)
+#     ret, dst = cv2.threshold(dst,0.01*dst.max(),255,0)
+#     dst = np.uint8(dst)
 
-    # find centroids
-    ret, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
+#     # find centroids
+#     ret, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
 
-    # define the criteria to stop and refine the corners
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
-    corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
+#     # define the criteria to stop and refine the corners
+#     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+#     corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
 
 
-    corners = np.delete(corners, (0), axis=0)
+#     corners = np.delete(corners, (0), axis=0)
 
-    visionTapeConers.append(corners)
+#     visionTapeConers.append(corners)
 
-    aTape = VisionTape(None, [0,0], contours[iteration]);
-    aTape.determine_direction(aTape.contour)
+#     aTape = VisionTape(None, [0,0], contours[iteration]);
+#     aTape.determine_direction(aTape.contour)
 
-    # print(corners.shape)
-    # print("centroids")
-    # print(centroids)
+#     # print(corners.shape)
+#     # print("centroids")
+#     # print(centroids)
 
-    # Now draw them
-    # res = np.hstack((corners))
-    corners = np.int0(corners)
-    # print(corners)
-    tape[corners[:,1],corners[:,0]]=[0, 0, 255]
-    tape[corners[:,1],corners[:,0]] = [0, 255, 0]
+#     # Now draw them
+#     # res = np.hstack((corners))
+#     corners = np.int0(corners)
+#     # print(corners)
+#     tape[corners[:,1],corners[:,0]]=[0, 0, 255]
+#     tape[corners[:,1],corners[:,0]] = [0, 255, 0]
 
-annotatedImage = loadedImage.copy()
+# annotatedImage = loadedImage.copy()
 
-# shift the corners over so that their coordinates are back in the global scope
-for i, corner in enumerate(visionTapeConers):
+# # shift the corners over so that their coordinates are back in the global scope
+# for i, corner in enumerate(visionTapeConers):
     
-    rect = rectangles[i]
-    x = rect[0]
-    y = rect[1]
+#     rect = rectangles[i]
+#     x = rect[0]
+#     y = rect[1]
 
-    # cycle through all the corners and offset them
-    for c in corner:
-        c[0] += x
-        c[1] += y
-
-    
-    # print("CORNER: ")
-    # print(corner)
-
-    for point in corner:
-        # print(point)
-        annotatedImage[int(point[1]), int(point[0])] = [0, 0, 255]
+#     # cycle through all the corners and offset them
+#     for c in corner:
+#         c[0] += x
+#         c[1] += y
 
     
+#     # print("CORNER: ")
+#     # print(corner)
+
+#     for point in corner:
+#         # print(point)
+#         annotatedImage[int(point[1]), int(point[0])] = [0, 0, 255]
+
+    
 
 
-# to display all the images
-for i, tape in enumerate(visionTape):
-    cv2.namedWindow("tape %s" % i,cv2.WINDOW_GUI_EXPANDED)
-    cv2.resizeWindow("tape %s" % i, 400,600)
+# # to display all the images
+# for i, tape in enumerate(visionTape):
+#     cv2.namedWindow("tape %s" % i,cv2.WINDOW_GUI_EXPANDED)
+#     cv2.resizeWindow("tape %s" % i, 400,600)
 
-    cv2.imshow("tape %s" % i, tape)
+#     cv2.imshow("tape %s" % i, tape)
 
 
 
@@ -487,9 +581,7 @@ for i, tape in enumerate(visionTape):
 
 # print(boxes)
 
-cv2.namedWindow('image',cv2.WINDOW_NORMAL)
-cv2.imshow('image', annotatedImage)
-cv2.resizeWindow('image', 800,600)
+
 
 cv2.waitKey(20000)
 
