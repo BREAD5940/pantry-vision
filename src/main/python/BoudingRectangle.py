@@ -14,6 +14,8 @@ class DIRECTION(Enum):
     LEFT = 0
     RIGHT = 1
 
+literallyAnInt = 0
+
 class VisionTape:
     def __init__(self, image, imageCornerLoc, contour):
         self.image = image
@@ -21,8 +23,8 @@ class VisionTape:
         self.minAreaRect = None
         self.contour = contour
         self.center = None
-        self.points = []
         self.corners = []
+        self.harrisCorners = None
         self.direction = None
 
     def get_center(self):
@@ -46,14 +48,11 @@ class VisionTape:
         contour = self.contour
         return cv2.contourArea(contour)
 
-
-
     def get_x_center_coordinate(self):
         if(self.minAreaRect is None):
             self.determine_direction(self.contour)
         
         return self.get_center()[0]
-
 
     def get_angle(self):
         """
@@ -79,8 +78,6 @@ class VisionTape:
         
         return self.direction
 
-
-
     def determine_direction(self, contour):
 
         minRect = cv2.minAreaRect(contour)
@@ -104,24 +101,98 @@ class VisionTape:
         self.minAreaRect = minRect
         return minRect
 
-    # @staticmethod
-    # def compare(item1, item2):
-    #     # this needs to return -1 if it's less than the other, 0 if same, or 1 of greater than other
-    #     if item1.get_center()[1] < item2.get_center()[1]:
-    #         return -1
-    #     elif item1.get_center()[1] > item2.get_center()[1]:
-    #         return 1
-    #     else:
-    #         return 0
+    def findHarrisPoints(self):
+        # find Harris corners
+        image = self.image
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = np.float32(gray)
+        dst = cv2.cornerHarris(gray, 2, 3, 0.04)
+        # dst = cv2.goodFeaturesToTrack(gray, 4, 0.05, 2.0, useHarrisDetector=True)
+        dst = cv2.dilate(dst,None)
+        ret, dst = cv2.threshold(dst,0.01*dst.max(),255,0)
+        dst = np.uint8(dst)
+
+        # find centroids
+        ret, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
+
+        # define the criteria to stop and refine the corners
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+        corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
+
+        corners = np.delete(corners, (0), axis=0)
+
+        imag2 = self.image.copy()
+        print("printing ye olde corners that we found")
+
+        for corner in corners:
+            print(corner)
+
+            imag2[int(corner[1]), int(corner[0])] = [0, 0, 255]
+
+        cv2.imshow("corner boi %s" % corners[0, 1], imag2)
+        # cv2.waitKey(0)
+
+        self.harrisCorners = corners
+
+    def findCorners(self):
+        # we split the contour in half i guess
+        # for the top, if it'ss tipped right the leftmost point is the top left,
+        # and the rightmost point is the top right
+        # at the bottom, the bottommost point is the bottom right and the 
+        # the leftmost point is the bottom left
+        # we only care about the outer corners tho
+        # we can do this with the extreme points function in opencv
+        c = self.contour
+        extLeft = tuple(c[c[:, :, 0].argmin()][0])
+        extRight = tuple(c[c[:, :, 0].argmax()][0])
+        extTop = tuple(c[c[:, :, 1].argmin()][0])
+        extBot = tuple(c[c[:, :, 1].argmax()][0])
+
+        print(extLeft, extRight, extTop, extBot)
+
+        # based on the tip of this, put it in the correct order
+        # i.e. bottom-outside, top-outside, top-inside, bottom-inside
+        # keep in mind that top and bottom are flipped because the origin is 
+        # at the top left of the image, and that the bottom inner point is unreliable
+
+        if(self.direction is None):
+            self.determine_direction(self.contour)
+
+        if(self.direction is DIRECTION.RIGHT):
+            # tippped right means this is the left target
+            self.corners = [
+                extLeft, extTop, extRight, extBot
+            ]
+        else:
+            # tippped left means this is the right target
+            self.corners = [
+                extRight, extTop, extLeft, extBot
+            ]
+        
+        print("detected corner area\n", self.corners)
 
 
 
-    def order_points(self, pts):
+    def order_points(self):
+
+        print("dfa;lkjfas;lkdjf")
+
+
+        # if(self.harrisCorners is None):
+        #     self.findHarrisPoints()
+
+        pts = self.harrisCorners.copy()
+
+        print("total corners ", len(pts))
+
+        assert(len(pts) is 4)
 
         # TODO Change sort to Y axis then x axis
 
         ySorted= pts[np.argsort(pts[:, 1]), :]
-        print("sorted by y axis: %s" % ySorted)
+        print("sorted by y axis: \n%s" % ySorted)
+
+        
 
         # # sort the points based on their x-coordinates
         # xSorted = pts[np.argsort(pts[:, 0]), :]
@@ -150,7 +221,7 @@ class VisionTape:
 
         # self.orderedPoints = np.array([tl, tr, br, bl], dtype="float32")
 
-        # img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark72in.jpg",
+        # img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/RocketPanelStraightDark24in.jpg",
         #                              cv2.IMREAD_UNCHANGED))
         # cv2.circle(img, (tl), 4, (255, 0, 0), -1)
 
@@ -185,6 +256,21 @@ class VisionTarget:
     def get_center_offset(self, res):
         xCoord = self.get_center()[0]
         return xCoord - (res/2.0)
+    
+    def get_convex_hull_4_sided(self):
+        # contour1 = self.individualTapes[0]
+        # contour2 = self.individualTapes[1]
+
+        hullBoi = []
+        # bigBoi = contour1.append(contour2)
+        for tape in self.individualTapes:
+            hullBoi.append(cv2.convexHull(tape., False))
+
+        convexHull = cv2.convexHull(bigBoi)
+
+        self.hull = convexHull
+
+        return convexHull
 
         # i guess just the average of the two centers
 
@@ -227,6 +313,9 @@ class GripPipeline:
         self.boundingRects = None
         self.visionTapes = []
         self.visionPair = None
+        self.detectedPose = None
+
+        self.visionPairs = None
 
     def process(self, source0, horizontalRes = 320):
         """
@@ -269,18 +358,27 @@ class GripPipeline:
         self.visionTapes = self.sortVisionTargets(self.visionTapes)
 
         # pair targets up
-        self.visionPairs = self.decideVisionPairs(self.visionTapes, horizontalRes)
+        self.visionPair = self.decideVisionPairs(self.visionTapes, horizontalRes)
 
         # for debugging, annotate the image
         temp = source0.copy()
-        # for f in self.visionPairs:
-        loc = self.visionPairs.get_center()
+        # for f in self.visionPair:
+        loc = self.visionPair.get_center()
         loc = np.int0(loc)
         loc = (loc[0], loc[1])
         cv2.circle(temp, tuple(loc), 3, (0,0,255))
-        cv2.line(temp, tuple(np.int0(self.visionPairs.individualTapes[0].get_center())), tuple(np.int0(self.visionPairs.individualTapes[1].get_center())), (255, 255, 0))
+        cv2.line(temp, tuple(np.int0(self.visionPair.individualTapes[0].get_center())), tuple(np.int0(self.visionPair.individualTapes[1].get_center())), (255, 255, 0))
 
-        self.printVisionTapes(self.visionTapes)
+
+        # self.detectedPose = self.solvePNPCorners(self.visionPair, None, None)
+        cv2.drawContours(temp, self.visionPair.get_convex_hull_4_sided(), -1, (100, 100, 255))
+
+        for i, cont in enumerate(self.filter_contours_output):
+            cv2.drawContours(temp, self.filter_contours_output, i, (255, 0, 0))
+
+        cv2.drawContours(temp, )
+
+        temp = self.printVisionTapes(self.visionTapes, temp)
 
   
         for e in self.visionTapes:
@@ -294,11 +392,68 @@ class GripPipeline:
         cv2.imshow('temp', temp)
         cv2.resizeWindow('temp', 800,600)
 
+    @staticmethod
+    def solvePNPCorners(visionPair, camera_matrix, dist_coefs):
+        """
+        Find the pose2d of a a given pair of vision targets
+        
+        Args:
+            a vision pair to use
+
+        Returns:
+            the pose of the vision target in the form [[x, y, z], [pitch, yaw, roll]]
+        """
+        # Start by finding the corners ig. do dis for each of the tapes in the pair
+        for t in visionPair.individualTapes:
+            t.findCorners()
+
+        candidates = t.harrisCorners[0], 
+
+        # credit to https://www.chiefdelphi.com/t/finding-camera-location-with-solvepnp/159685/6
+        # def findCameraLocation(candidate,camera_matrix,dist_coefs):
+        print("testing candidate")
+        print('candidate is ', candidates)
+        #I used a 2.6 inch square as my target
+        objpoints1=np.array([(0,0,0),(2.6,0,0),(2.6,2.6,0),(0,2.6,0)],dtype=np.float)
+        print("obj points set")
+        #objpoints1 is an array of the corners of the square in world coordinates
+        retval,rvec1,tvec1=cv2.solvePnP(objpoints1,candidate,camera_matrix,dist_coefs)
+        # print("returning result")
+        # return True,tvec1,rvec1
+
+        R = cv2.rodrigues(rvec1)
+        t = -R.transpose().dot(tvec1)
+
+        # ZYX,jac=cv2.Rodrigues(rvec1)
+        # print('Rodriguex')
+        # print(ZYX)
+        # print('done with r')
+
+        # totalrotmax=np.array([[ZYX[0,0],ZYX[0,1],ZYX[0,2],tvec[0]],[ZYX[1,0],ZYX[1,1],ZYX[1,2],tvec[1]],[ZYX[2,0],ZYX[2,1],ZYX[2,2],tvec[2]],[0,0,0,1]]) # TODO check maths
+
+        # WtoC=np.mat(totalrotmax)
+
+        # inverserotmax=np.linalg.inv(totalrotmax)
+        # f=inverserotmax
+        # print(inverserotmax)
+
+        
+
 
     @staticmethod
-    def printVisionTapes(sortedList):
+    def printVisionTapes(sortedList, tempImg):
         for i, item in enumerate(sortedList):
-            print(item.get_x_center_coordinate())
+            print("center x coord: ", item.get_x_center_coordinate())
+            # print("ordered points: ")
+            item.findCorners()
+            # annotate the corners
+
+
+            # for point in item.corners:
+            #     tempImg[int(point[1]), int(point[0])] = [0, 0, 255]
+
+        return tempImg
+            
 
     @staticmethod
     def decideVisionPairs(sortedList, horizontalRes):
@@ -379,6 +534,10 @@ class GripPipeline:
         """
         """
         img_ = img_[range_[1]:range_[3], range_[0]:range_[2]]
+
+        # cv2.imshow(img_)
+        # cv2.waitKey(0)
+        # cv2.destroyWindow()
 
         # print(img_)
 
@@ -482,7 +641,7 @@ class GripPipeline:
 
 pipe = GripPipeline()
 
-loadedImage = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark72in.jpg",
+loadedImage = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/RocketPanelStraightDark24in.jpg",
                              cv2.IMREAD_UNCHANGED))
 
 pipe.process(loadedImage, horizontalRes = 320)
@@ -491,7 +650,7 @@ pipe.process(loadedImage, horizontalRes = 320)
 
 # toAnnotate = pipe.hsv_threshold_output
 
-cv2.imshow('before', pipe.hsv_threshold_output)
+# cv2.imshow('before', pipe.hsv_threshold_output)
 
 # contours = pipe.filter_contours_output
 
