@@ -2,13 +2,128 @@ import cv2 as cv2
 import numpy as np
 from scipy.spatial import distance as dist
 import math
-# from enum import Enum
+from enum import Enum
 # import random 
 
 try:
     from cv2 import cv2
 except ImportError:
     pass
+
+class DIRECTION(Enum):
+    LEFT = 0
+    RIGHT = 1
+
+class VisionTape:
+    def __init__(self, image, imageCornerLoc, contour):
+        self.image = image
+        self.imageCorner = imageCornerLoc
+        self.minAreaRect = None
+        self.contour = contour
+        self.center = None
+        self.points = []
+        self.corners = []
+        self.direction = None
+
+    def get_center(self):
+        """
+        Get the centroid of the minimum area rectangle
+        that surrounds this contour
+
+        Returns:
+            The center in the form (x, y)
+        """
+
+        if(self.minAreaRect is None):
+            self.determine_direction(self.contour)
+        
+        return self.minAreaRect[0]
+
+    def get_direction(self):
+        """
+        Get the angle of the min area rectangle surrounding this contour
+
+        Returns:
+            The angle with zero straight up, positive clockwise
+        """
+        if self.direction is None:
+            self.determine_direction(self.contour)
+        
+        return self.minAreaRect[2]
+
+    def determine_direction(self, contour):
+
+        minRect = cv2.minAreaRect(contour)
+
+        while(minRect[2] < -45):
+            dims = minRect[1]
+            dims = [dims[1], dims[0]]
+            minRect = (minRect[0], dims, minRect[2] + 90)
+        while(minRect[2] > 45):
+            dims = minRect[1]
+            dims = [dims[1], dims[0]]
+            minRect = (minRect[0], dims, minRect[2] - 90)
+
+        self.minAreaRect = minRect
+
+        if(minRect[2] > 0):
+            self.direction = DIRECTION.LEFT
+        else:
+            self.direction = DIRECTION.RIGHT
+
+        self.minAreaRect = minRect
+        return minRect
+
+    def compare(self, other):
+        # this needs to return -1 if it's less than the other, 0 if same, or 1 of greater than other
+        if self.get_center
+
+
+
+    def order_points(self, pts):
+
+        # TODO Change sort to Y axis then x axis
+
+        ySorted= pts[np.argsort(pts[:, 1]), :]
+        print("sorted by y axis: %s" % ySorted)
+
+        # # sort the points based on their x-coordinates
+        # xSorted = pts[np.argsort(pts[:, 0]), :]
+
+        # # grab the left-most and right-most points from the sorted
+        # # x-roodinate points
+        # leftMost = xSorted[:2, :]
+        # rightMost = xSorted[2:, :]
+
+        # # now, sort the left-most coordinates according to their
+        # # y-coordinates so we can grab the top-left and bottom-left
+        # # points, respectively
+        # leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
+        # (tl, bl) = leftMost
+
+        # # now that we have the top-left coordinate, use it as an
+        # # anchor to calculate the Euclidean distance between the
+        # # top-left and right-most points; by the Pythagorean
+        # # theorem, the point with the largest distance will be
+        # # our bottom-right point
+        # D = dist.cdist(tl[np.newaxis], rightMost, "euclidean")[0]
+        # (br, tr) = rightMost[np.argsort(D)[::-1], :]
+
+        # # return the coordinates in top-left, top-right,
+        # # bottom-right, and bottom-left order
+
+        # self.orderedPoints = np.array([tl, tr, br, bl], dtype="float32")
+
+        # img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
+        #                              cv2.IMREAD_UNCHANGED))
+        # cv2.circle(img, (tl), 4, (255, 0, 0), -1)
+
+        # cv2.imshow(img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+
+        # return self.orderedPoints
+
 
 class GripPipeline:
     """
@@ -46,7 +161,8 @@ class GripPipeline:
         self.filter_contours_output = None
         self.__hsv_threshold_input = None
 
-
+        self.boundingRects = None
+        self.visionTapes = []
 
     def process(self, source0):
         """
@@ -77,14 +193,77 @@ class GripPipeline:
                                                                self.__filter_contours_min_ratio,
                                                                self.__filter_contours_max_ratio)
 
+        self.boundingRects = self.getRect(self.filter_contours_output)
+
+        for i, rect in enumerate(self.boundingRects):
+            self.visionTapes.append(
+                VisionTape(
+                    self.crop(source0.copy(), rect), [rect[0], rect[1]], self.filter_contours_output[i]
+                )
+            )
+
+    @staticmethod
+    def decideVisionPairs(self, listOfTargets):
+        # TODO do stuff
+        return
+
+    @staticmethod
+    def sortVisionTargets(self, listOfTargets):
+        
+
+    # get a bounding rectangle
+    @staticmethod
+    def getRect(contours_):
+        """
+        Get the bouding rectangles (parallel to X and Y axis) of a list
+        of countours
+        
+        Args:
+            contours_: a list of contours
+
+        Returns:
+            a list of rectangles in the form [x, y, x_2, y_2], where x_2 and y_2 are the bottom-right corner
+        """
+        toReturn = []
+
+        for c in contours_:
+            # get the bounding rect
+            x, y, w, h = cv2.boundingRect(c)
+
+            buffer = 7
+            # x,y is top left of the box boi
+            x -= int(buffer/2)
+            y -= int(buffer/2)
+            w += buffer
+            h += buffer
+
+            # draw a green rectangle to visualize the bounding rect
+            # cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 1)
+
+            toReturn.append([x, y, x+w, y+h])
+        
+        return toReturn
+
+    @staticmethod
+    def crop(img_, range_):
+        """
+        """
+        img_ = img_[range_[1]:range_[3], range_[0]:range_[2]]
+
+        # print(img_)
+
+        return img_
+
     @staticmethod
     def __hsv_threshold(input, hue, sat, val):
         """Segment an image based on hue, saturation, and value ranges.
+
         Args:
             input: A BGR numpy.ndarray.
             hue: A list of two numbers the are the min and max hue.
             sat: A list of two numbers the are the min and max saturation.
             lum: A list of two numbers the are the min and max value.
+
         Returns:
             A black and white numpy.ndarray.
         """
@@ -153,56 +332,21 @@ class GripPipeline:
             output.append(contour)
         return output
 
+    # Now we get to do the fun stuff of splitting the detected contours
+    # up into their individual parts
+    @staticmethod
+    def __split_image(image, contours):
+        """Splits the image up into individual regions and saves it to a VisionTape object
+        Args:
+            image: the image we took
+            contours: the contours we filtered
+        Returns:
+            The vision tapes as a list of VisionTapes
+        """
 
-class Box:
-    def __init__(self, theBox):
-        self.coordinates = theBox
 
-        # self.shortSide = None
-        # self.longSide = None
-        # self.angle = None
-        self.orderedPoints = None
 
-        boxPoints = cv2.boxPoints(theBox)
-        self.boxPoints = boxPoints
 
-    def order_points(self, pts):
-        # sort the points based on their x-coordinates
-        xSorted = pts[np.argsort(pts[:, 0]), :]
-
-        # grab the left-most and right-most points from the sorted
-        # x-roodinate points
-        leftMost = xSorted[:2, :]
-        rightMost = xSorted[2:, :]
-
-        # now, sort the left-most coordinates according to their
-        # y-coordinates so we can grab the top-left and bottom-left
-        # points, respectively
-        leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
-        (tl, bl) = leftMost
-
-        # now that we have the top-left coordinate, use it as an
-        # anchor to calculate the Euclidean distance between the
-        # top-left and right-most points; by the Pythagorean
-        # theorem, the point with the largest distance will be
-        # our bottom-right point
-        D = dist.cdist(tl[np.newaxis], rightMost, "euclidean")[0]
-        (br, tr) = rightMost[np.argsort(D)[::-1], :]
-
-        # return the coordinates in top-left, top-right,
-        # bottom-right, and bottom-left order
-
-        self.orderedPoints = np.array([tl, tr, br, bl], dtype="float32")
-
-        img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/CargoStraightDark48in.jpg",
-                                     cv2.IMREAD_UNCHANGED))
-        cv2.circle(img, (tl), 4, (255, 0, 0), -1)
-
-        cv2.imshow(img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-        return self.orderedPoints
 
 
 
@@ -223,34 +367,35 @@ contours = pipe.filter_contours_output
 
 contours = np.asarray(contours)
 
-def getRect(contours_):
+# # get a bounding rectangle
+# def getRect(contours_):
 
-    toReturn = []
+#     toReturn = []
 
-    for c in contours_:
-        # get the bounding rect
-        x, y, w, h = cv2.boundingRect(c)
+#     for c in contours_:
+#         # get the bounding rect
+#         x, y, w, h = cv2.boundingRect(c)
 
-        buffer = 7
-        # x,y is top left of the box boi
-        x -= int(buffer/2)
-        y -= int(buffer/2)
-        w += buffer
-        h += buffer
+#         buffer = 7
+#         # x,y is top left of the box boi
+#         x -= int(buffer/2)
+#         y -= int(buffer/2)
+#         w += buffer
+#         h += buffer
 
-        # draw a green rectangle to visualize the bounding rect
-        # cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 1)
+#         # draw a green rectangle to visualize the bounding rect
+#         # cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 1)
 
-        toReturn.append([x, y, x+w, y+h])
+#         toReturn.append([x, y, x+w, y+h])
     
-    return toReturn
+#     return toReturn
 
-def crop(img_, range_):
-    img_ = img_[range_[1]:range_[3], range_[0]:range_[2]]
+# def crop(img_, range_):
+#     img_ = img_[range_[1]:range_[3], range_[0]:range_[2]]
 
-    # print(img_)
+#     # print(img_)
 
-    return img_
+#     return img_
 
 # a list of rectangles
 rectangles = getRect(contours)
@@ -287,6 +432,9 @@ for iteration, tape in enumerate(visionTape):
 
     visionTapeConers.append(corners)
 
+    aTape = VisionTape(None, [0,0], contours[iteration]);
+    aTape.determine_direction(aTape.contour)
+
     # print(corners.shape)
     # print("centroids")
     # print(centroids)
@@ -313,11 +461,11 @@ for i, corner in enumerate(visionTapeConers):
         c[1] += y
 
     
-    print("CORNER: ")
+    # print("CORNER: ")
     # print(corner)
 
     for point in corner:
-        print(point)
+        # print(point)
         annotatedImage[int(point[1]), int(point[0])] = [0, 0, 255]
 
     
@@ -343,135 +491,8 @@ cv2.namedWindow('image',cv2.WINDOW_NORMAL)
 cv2.imshow('image', annotatedImage)
 cv2.resizeWindow('image', 800,600)
 
-cv2.waitKey(0)
+cv2.waitKey(20000)
 
 cv2.destroyAllWindows()
 
 
-
-# import cv2
-# import numpy as np
-# import os.path
-# import time
-# from enum import Enum
-#
-# def isWhithinRange(value, expected, tolerence):
-#     upperLimit = expected + tolerence
-#     lowerLimit = expected - tolerence
-#
-#     if (value > lowerLimit) & (value < upperLimit):
-#         return True
-#     else:
-#         return False
-#
-# def contourTracingShit(aspect_ratio, extent, area, imageToMarkup, c, x, y, w, h):
-#     # get the min area rect
-#     rect = cv2.minAreaRect(c)
-#     box = cv2.boxPoints(rect)
-#     # convert all coordinates floating point values to int
-#     box = np.int0(box)
-#
-#     topmiddlepoint = findTheTopMiddleOfAbox(box)
-#
-#     # Draw a circle at the point to aim at - TODO POST THIS TO NETWORK TABLES
-#     cv2.circle(imageToMarkup, (topmiddlepoint[0], topmiddlepoint[1]), 3, (255,100,255), thickness=6, lineType=8, shift=0)
-#
-#     # draw a red 'nghien' rectangle
-#     cv2.drawContours(imageToMarkup, [box], 0, (0, 0, 255))
-#
-#     print("Top middle of the contour is at %s" % topmiddlepoint)
-#
-# def findTheTopMiddleOfAbox(box):
-#     boxSorted = box[box[:,1].argsort()]
-#     point1 = [boxSorted[0][0], boxSorted[0][1]]
-#     point2 = [boxSorted[1][0], boxSorted[1][1]]
-#     delta_points = [point2[0] - point1[0], point2[1]-point1[1]]
-#     output_point = [0,0]
-#     output_point[0] = point1[0] + delta_points[0]/2
-#     output_point[1] = point1[1] + delta_points[1]/2
-#     return output_point
-#
-# # class GripPipeline:
-#     # """
-#     # An OpenCV pipeline generated by GRIP.
-#     # """
-#
-#     # def __init__():
-#         # """initializes all values to presets or None if need to be set
-#         # """
-#
-# __hsv_threshold_hue = [43.70503597122302, 86.79117147707979]
-# __hsv_threshold_saturation = [139.88309352517985, 255.0]
-# __hsv_threshold_value = [96.31294964028778, 255.0]
-#
-# hsv_threshold_output = None
-#
-# __find_contours_input = hsv_threshold_output
-# __find_contours_external_only = False
-#
-# find_contours_output = None
-#
-#
-# def process(source0):
-#     # """
-#     # Runs the pipeline and sets all outputs to new values.
-#     # """
-#     # Step HSV_Threshold0:
-#     __hsv_threshold_input = source0
-#     (hsv_threshold_output) = __hsv_threshold(__hsv_threshold_input, __hsv_threshold_hue, __hsv_threshold_saturation, __hsv_threshold_value)
-#
-#     # Step Find_Contours0:
-#     __find_contours_input = hsv_threshold_output
-#     (find_contours_output) = __find_contours(__find_contours_input, __find_contours_external_only)
-#
-#
-# # @staticmethod
-# def __hsv_threshold(input, hue, sat, val):
-#     # """Segment an image based on hue, saturation, and value ranges.
-#     # Args:
-#     #     input: A BGR numpy.ndarray.
-#     #     hue: A list of two numbers the are the min and max hue.
-#     #     sat: A list of two numbers the are the min and max saturation.
-#     #     lum: A list of two numbers the are the min and max value.
-#     # Returns:
-#     #     A black and white numpy.ndarray.
-#     # """
-#     out = cv2.cvtColor(input, cv2.COLOR_BGR2HSV)
-#     return cv2.inRange(out, (hue[0], sat[0], val[0]),  (hue[1], sat[1], val[1]))
-#
-# # @staticmethod
-# def __find_contours(input, external_only):
-#     # """Sets the values of pixels in a binary image to their distance to the nearest black pixel.
-#     # Args:
-#     #     input: A numpy.ndarray.
-#     #     external_only: A boolean. If true only external contours are found.
-#     # Return:
-#     #     A list of numpy.ndarray where each one represents a contour.
-#     # """
-#     if(external_only):
-#         mode = cv2.RETR_EXTERNAL
-#     else:
-#         mode = cv2.RETR_LIST
-#     method = cv2.CHAIN_APPROX_SIMPLE
-#     contours = cv2.findContours(input, mode=mode, method=method)
-#     return contours
-#
-#
-# img = cv2.pyrDown(cv2.imread("/Users/matt/Documents/GitHub/pantry-vision/images/2019/LoadingStraightDark48in.jpg", cv2.IMREAD_UNCHANGED))
-#
-# threshedImg =  __hsv_threshold(img, __hsv_threshold_hue, __hsv_threshold_saturation, __hsv_threshold_value)
-#
-# # foundContours = __find_contours(threshedImg, __find_contours_external_only)
-#
-# contours =
-#
-# annotated = img.copy()
-#
-# cv2.drawContours(annotated, foundContours, -1, (0,255,0), 3)
-#
-#
-# cv2.imshow("image", annotated)
-#
-# cv2.waitKey(0)
-#
-# cv2.destroyAllWindows()

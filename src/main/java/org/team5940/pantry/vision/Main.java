@@ -1,6 +1,7 @@
 package org.team5940.pantry.vision;
 
 import java.util.ArrayList;
+import java.util.ListIterator;
 import java.util.Random;
 
 import org.opencv.core.CvType;
@@ -47,6 +48,8 @@ public class Main {
 
             var boundingRect = Imgproc.boundingRect(contour);
 
+            var yes = Imgproc.minAreaRect(contour);
+
             Rect rectCrop = new  Rect(new BetterPoint(boundingRect.tl()).minus(buffer), new Size(boundingRect.width + buffer.x*2, boundingRect.height + buffer.y*2)); 
             Mat croppedImg = image32S.submat(rectCrop);
 
@@ -60,7 +63,13 @@ public class Main {
         Imgcodecs.imwrite("images/output/CargoStraightDark48in.jpg", image32S);
         Imgcodecs.imwrite("images/output/markedUP.jpg", yes);
 
-        
+        ListIterator<DetectedContour> contourListIterator= contourList.listIterator();
+        while (contourListIterator.hasNext()) {
+            var nextIndex = contourListIterator.nextIndex();
+            var nextContour = contourListIterator.next();
+
+            Imgcodecs.imwrite(String.format("images/output/markedUPNumero%s.jpg", nextIndex), nextContour.image);
+        }
 
     }
 
@@ -69,11 +78,41 @@ public class Main {
         Mat image;
         Point imageCornerLoc;
         MatOfPoint contour;
+        Point[] corners_;
 
         public DetectedContour(Mat image, Point imageCornerLoc, MatOfPoint contour) {
             this.image = image;
             this.imageCornerLoc = imageCornerLoc;
             this.contour = contour;
+
+            detectCorners(image);
+        }
+
+        public void detectCorners(Mat image) {
+            // # find Harris corners
+            // gray = cv2.cvtColor(tape, cv2.COLOR_BGR2GRAY)
+            var gray = new Mat();
+            Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
+            // gray = np.float32(gray)
+            // dst = cv2.cornerHarris(gray, 2, 3, 0.04)
+            var dst = new Mat();
+            Imgproc.cornerHarris(gray, dst, 2, 3, 0.04);
+            // dst = cv2.dilate(dst,None)
+            // ret, dst = cv2.threshold(dst,0.01*dst.max(),255,0)
+            // dst = Imgproc.threshold(dst, dst, 0.01*dst.maxv, 255, 0);
+            // dst = np.uint8(dst)
+        
+            // # find centroids
+            // ret, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
+            Mat labels = new Mat(), stats = new Mat(), centroids = new Mat();
+            Imgproc.connectedComponentsWithStats(dst, labels, stats, centroids);
+
+            print("centroids");
+            print(centroids);
+
+            // # define the criteria to stop and refine the corners
+            // criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+            // corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
         }
 
     }
