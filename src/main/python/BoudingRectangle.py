@@ -180,7 +180,11 @@ class VisionTape:
         TR_pts = list(filter(lambda C: C[0][0] > cx and C[0][1] < cy, contour))
         BR_pts = list(filter(lambda C: C[0][0] > cx and C[0][1] > cy, contour))
         BL_pts = list(filter(lambda C: C[0][0] < cx and C[0][1] > cy, contour))
+
+        # print(TL_pts, TR_pts, BR_pts, BL_pts)
+
         if min(len(TL_pts), len(TR_pts), len(BR_pts), len(BL_pts)) == 0:
+            print("oof, it blank")
             return None
         # Categorize the "corner point" by being farthest from the center
         farthest = lambda C: (C[0][0]-cx)**2 + (C[0][1]-cy)**2
@@ -190,6 +194,7 @@ class VisionTape:
         bl = list(sorted(BL_pts, key=farthest, reverse=True))[0]
 
         toReturn = np.array([tl, tr, br, bl])
+        print("toReturn", toReturn)
         self.corners = toReturn
         return toReturn
 
@@ -403,8 +408,6 @@ class GripPipeline:
         # self.detectedPose = self.solvePNPCorners(self.visionPair, None, None)
         # cv2.drawContours(temp, self.visionPair.find_corner_points(), -1, (100, 100, 255))
 
-        for point in self.visionPair.
-
         for i, cont in enumerate(self.filter_contours_output):
             cv2.drawContours(temp, self.filter_contours_output, i, (255, 0, 0))
 
@@ -412,6 +415,11 @@ class GripPipeline:
 
         temp = self.printVisionTapes(self.visionTapes, temp)
 
+        for pair in self.visionPair.get_corner_points():
+            for point in pair:
+                point = point[0]
+                print("Setting point color for point", point)
+                temp[int(point[1]), int(point[0])] = [0, 0, 255]
   
         for e in self.visionTapes:
             loc = e.get_center()
